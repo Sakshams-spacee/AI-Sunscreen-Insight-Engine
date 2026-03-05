@@ -8,33 +8,42 @@ import altair as alt
 # -------------------------
 
 def fetch_reddit_posts(query):
+
     subreddits = [
         "IndianSkincareAddicts",
         "skincareaddictsindia",
-        "IndianBeautyTalks"
+        "IndianBeautyTalks",
+        "SkinSolutionsindia"
     ]
 
-    # We use a generic browser-like User-Agent to avoid the '429' (Too Many Requests) error
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"}
     posts = []
 
     for sub in subreddits:
-        # We append .json to the search URL to get data without an API key
-        url = f"https://www.reddit.com/r/{sub}/search.json?q={query}&restrict_sr=1&sort=new&limit=15"
+
+        url = f"https://www.reddit.com/r/{sub}/search.rss?q={query}"
 
         try:
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                for post in data["data"]["children"]:
-                    title = post["data"]["title"]
-                    # Keyword safety check
-                    if any(k in title.lower() for k in ["sunscreen", "spf", "sun screen"]):
-                        link = "https://reddit.com" + post["data"]["permalink"]
-                        posts.append((title[:120], link))
-        except Exception as e:
+            response = requests.get(url)
+
+            if response.status_code != 200:
+                continue
+
+            items = response.text.split("<item>")
+
+            for item in items[1:6]:
+
+                title = item.split("<title>")[1].split("</title>")[0].lower()
+
+                if "sunscreen" not in title and "spf" not in title:
+                    continue
+
+                link = item.split("<link>")[1].split("</link>")[0]
+
+                posts.append((title[:120], link))
+
+        except:
             continue
-            
+
     return posts
 
 # -------------------------
@@ -92,3 +101,4 @@ if st.button("Fetch & Analyze"):
                 x="Category", y="Count"
             ).properties(width=600, height=300)
             st.altair_chart(chart)
+
