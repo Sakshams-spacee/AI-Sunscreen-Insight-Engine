@@ -20,9 +20,11 @@ def fetch_reddit_posts(query):
     headers = {"User-Agent": "Mozilla/5.0"}
     posts = []
 
+    query_words = query.lower().split()
+
     for sub in subreddits:
 
-        url = f"https://old.reddit.com/r/{sub}/search.json?q={query}&limit=5&restrict_sr=1"
+        url = f"https://old.reddit.com/r/{sub}/hot.json?limit=30"
 
         try:
             response = requests.get(url, headers=headers, timeout=10)
@@ -36,9 +38,13 @@ def fetch_reddit_posts(query):
 
                 title = post["data"]["title"].lower()
 
-                # only sunscreen related posts
-                if not any(word in title for word in ["sunscreen","spf","sun screen","uv","sun protection"]):
-                 continue
+                # keep sunscreen related posts
+                if not any(word in title for word in ["sunscreen", "spf", "sun screen"]):
+                    continue
+
+                # check if query words match
+                if query and not any(word in title for word in query_words):
+                    continue
 
                 clean_text = title.replace("&#x200b;", "")
                 link = "https://reddit.com" + post["data"]["permalink"]
@@ -109,7 +115,7 @@ complaint_keywords = {
 
 query = st.text_input(
     "Search query",
-    placeholder="Try your query"
+    placeholder="Try: dark skin sunscreen, oily skin spf, sunscreen humidity"
 )
 
 # -------------------------
@@ -120,10 +126,11 @@ if st.button("Fetch, filter & generate product ideas"):
 
     posts = fetch_reddit_posts(query)
 
-    st.subheader("Reddit Discussions")
-
+    # fallback query if nothing found
     if len(posts) == 0:
-        st.write("No sunscreen discussions found for this query.")
+        posts = fetch_reddit_posts("sunscreen india")
+
+    st.subheader("Reddit Discussions")
 
     for text, link in posts[:5]:
         st.markdown(f"- {text}  \n[View discussion]({link})")
@@ -160,10 +167,7 @@ if st.button("Fetch, filter & generate product ideas"):
             size=25,
             color="#C27A2C"
         ).encode(
-            x=alt.X(
-                "Complaint:N",
-                axis=alt.Axis(labelAngle=0)
-            ),
+            x=alt.X("Complaint:N", axis=alt.Axis(labelAngle=0)),
             y="Frequency:Q"
         ).properties(
             width=650,
@@ -185,11 +189,11 @@ if st.button("Fetch, filter & generate product ideas"):
 
     if counts["white cast / dark skin suitability"] > 0:
         ideas.append("Invisible sunscreen formulated for melanin-rich Indian skin tones")
-        evidence.append("Consumers mention white cast or ashy finish on darker skin.")
+        evidence.append("Users complain about white cast or ashy finish on darker skin.")
 
     if counts["greasy/oily texture"] > 0:
         ideas.append("Ultra-matte gel sunscreen designed for humid Indian climates")
-        evidence.append("Users report greasy sunscreen performance in humidity.")
+        evidence.append("Consumers mention greasy sunscreen performance in humidity.")
 
     if counts["melting in heat"] > 0:
         ideas.append("Heat-resistant outdoor sunscreen for extreme Indian summers")
@@ -212,7 +216,3 @@ if st.button("Fetch, filter & generate product ideas"):
     for i in range(len(ideas)):
         st.markdown(f"**Idea:** {ideas[i]}")
         st.caption(f"Evidence: {evidence[i]}")
-
-
-
-
