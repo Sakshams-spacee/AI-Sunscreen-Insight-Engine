@@ -17,14 +17,17 @@ def fetch_reddit_posts(query):
         "SkinSolutionsindia"
     ]
 
-    headers = {"User-Agent": "Mozilla/5.0"}
-    posts = []
+    headers = {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+    }
 
-    query_words = query.lower().split()
+    posts = []
+    query_words = query.lower().split() if query else []
 
     for sub in subreddits:
 
-        url = f"https://old.reddit.com/r/{sub}/hot.json?limit=30"
+        url = f"https://www.reddit.com/r/{sub}/hot.json?limit=40"
 
         try:
             response = requests.get(url, headers=headers, timeout=10)
@@ -34,16 +37,16 @@ def fetch_reddit_posts(query):
 
             data = response.json()
 
-            for post in data["data"]["children"]:
+            for post in data.get("data", {}).get("children", []):
 
                 title = post["data"]["title"].lower()
 
                 # keep sunscreen related posts
-                if not any(word in title for word in ["sunscreen", "spf", "sun screen"]):
+                if not any(word in title for word in ["sunscreen", "spf", "sun screen", "uv"]):
                     continue
 
-                # check if query words match
-                if query and not any(word in title for word in query_words):
+                # match query words if query exists
+                if query_words and not any(word in title for word in query_words):
                     continue
 
                 clean_text = title.replace("&#x200b;", "")
@@ -51,10 +54,10 @@ def fetch_reddit_posts(query):
 
                 posts.append((clean_text[:120], link))
 
-        except:
+        except Exception:
             continue
 
-        time.sleep(0.5)
+        time.sleep(0.4)
 
     return posts
 
@@ -115,7 +118,7 @@ complaint_keywords = {
 
 query = st.text_input(
     "Search query",
-    placeholder="Try: dark skin sunscreen, oily skin spf, sunscreen humidity"
+    placeholder="Try: sunscreen india, dark skin sunscreen, oily skin spf"
 )
 
 # -------------------------
@@ -126,14 +129,17 @@ if st.button("Fetch, filter & generate product ideas"):
 
     posts = fetch_reddit_posts(query)
 
-    # fallback query if nothing found
+    # fallback if nothing found
     if len(posts) == 0:
-        posts = fetch_reddit_posts("sunscreen india")
+        posts = fetch_reddit_posts("sunscreen")
 
     st.subheader("Reddit Discussions")
 
-    for text, link in posts[:5]:
-        st.markdown(f"- {text}  \n[View discussion]({link})")
+    if len(posts) == 0:
+        st.write("No sunscreen discussions found.")
+    else:
+        for text, link in posts[:5]:
+            st.markdown(f"- {text}  \n[View discussion]({link})")
 
     # -------------------------
     # Complaint Detection
