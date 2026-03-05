@@ -1,31 +1,37 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from googlesearch import search
-import time
+import requests
+import json
 
 # -------------------------
-# Reddit Search via Google (No API Key Needed)
+# Serper.dev Search Function (The 2026 Stable Way)
 # -------------------------
 
-def fetch_reddit_via_google(user_query):
-    # This query tells Google to only look at specific Indian subreddits for your topic
-    search_query = f'site:reddit.com (inurl:IndianSkincareAddicts OR inurl:skincareaddictsindia) "sunscreen" {user_query}'
+def fetch_reddit_insights(user_query):
+    url = "https://google.serper.dev/search"
     
-    posts = []
+    # We target Indian subreddits specifically
+    full_query = f'site:reddit.com (inurl:IndianSkincareAddicts OR inurl:skincareaddictsindia) "sunscreen" {user_query}'
+    
+    payload = json.dumps({"q": full_query})
+    headers = {
+        'X-API-KEY': st.secrets["serper_api_key"],
+        'Content-Type': 'application/json'
+    }
+
     try:
-        # Fetching top 10 results
-        # num_results=10, lang="en"
-        for url in search(search_query, num_results=10, sleep_interval=2):
-            if "comments" in url:
-                # Create a readable title from the URL slug
-                slug = url.split('/')[-2] if url.endswith('/') else url.split('/')[-1]
-                display_title = slug.replace('_', ' ').replace('-', ' ').title()
-                posts.append((display_title, url))
-    except Exception as e:
-        st.error(f"Search error: {e}")
+        response = requests.request("POST", url, headers=headers, data=payload)
+        results = response.json()
         
-    return posts
+        posts = []
+        if "organic" in results:
+            for item in results["organic"]:
+                posts.append((item["title"], item["link"]))
+        return posts
+    except Exception as e:
+        st.error(f"API Error: {e}")
+        return []
 
 # -------------------------
 # UI Styling
@@ -37,74 +43,55 @@ st.markdown("""
 <style>
 .stApp { background-color: #E8B57A; }
 h1, h2, h3 { color: #7A4E2D; }
-.stButton > button { background-color: #D9D9D9; color: black; border-radius: 10px; border: 1px solid #7A4E2D; }
+.stButton > button { background-color: #D9D9D9; color: black; border-radius: 10px; font-weight: bold; }
 </style>
 """, unsafe_allow_html=True)
 
 st.title("🌻 AI Sunscreen Insight Engine")
-st.caption("Analyzing real consumer discussions from Indian subreddits via Google Search.")
+st.caption("Using Serper API for reliable, unblocked consumer data.")
 
 # -------------------------
-# User Input
+# User Input & Analysis
 # -------------------------
 
-query = st.text_input("Search query", placeholder="Try: oily skin sweat", help="Enter keywords like 'matte', 'silicone', or 'acne'")
+query = st.text_input("Search query", placeholder="Try: oily skin white cast")
 
-if st.button("Fetch & Generate Insights"):
+if st.button("Fetch & Analyze Insights"):
     if not query:
-        st.warning("Please enter a search term first!")
+        st.warning("Please enter a search term.")
     else:
-        with st.spinner("Scanning Reddit discussions via Google..."):
-            posts = fetch_reddit_via_google(query)
+        with st.spinner("Accessing Reddit via Serper..."):
+            posts = fetch_reddit_insights(query)
 
         if not posts:
-            st.error("No discussions found. Try making your search more general (e.g., just 'oily skin').")
+            st.error("No results found. Please check if your API key is correctly added to Streamlit Secrets.")
         else:
-            st.subheader("Relevant Reddit Threads")
+            st.subheader("Top Reddit Threads")
             for title, link in posts[:5]:
-                st.markdown(f"- **{title}** \n[View on Reddit]({link})")
+                st.markdown(f"- **{title}** \n[Read Thread]({link})")
 
-            # -------------------------
-            # Pattern Analysis
-            # -------------------------
-            # We check the titles for specific complaint keywords
+            # Simple Analytics
             complaint_map = {
-                "White Cast": ["white cast", "ashy", "ghost", "pale", "grey"],
-                "Greasy/Oily": ["greasy", "oily", "sticky", "chipchip", "heavy"],
-                "Eye Stinging": ["eye", "sting", "burn", "tear"],
-                "Breakouts": ["acne", "pimple", "clog", "breakout", "comedogenic"]
+                "White Cast": ["white cast", "ashy", "grey", "ghost"],
+                "Greasy": ["greasy", "oily", "sticky", "heavy"],
+                "Breakouts": ["acne", "pimple", "clog", "breakout"]
             }
 
             counts = {k: 0 for k in complaint_map}
             for title, _ in posts:
-                low_title = title.lower()
-                for category, keywords in complaint_map.items():
-                    if any(word in low_title for word in keywords):
-                        counts[category] += 1
+                t_low = title.lower()
+                for cat, keywords in complaint_map.items():
+                    if any(k in t_low for k in keywords):
+                        counts[cat] += 1
 
-            # Visualize if we found any data
-            df = pd.DataFrame({"Complaint": list(counts.keys()), "Frequency": list(counts.values())})
-            
-            if df["Frequency"].sum() > 0:
-                st.subheader("Common Issues Found")
+            df = pd.DataFrame({"Issue": list(counts.keys()), "Count": list(counts.values())})
+
+            st.subheader("Consumer Sentiment Analysis")
+            if df["Count"].sum() > 0:
                 chart = alt.Chart(df).mark_bar(color="#C27A2C").encode(
-                    x=alt.X("Complaint", sort="-y"),
-                    y="Frequency"
+                    x=alt.X("Issue", sort="-y"),
+                    y="Count"
                 ).properties(height=300)
                 st.altair_chart(chart, use_container_width=True)
             else:
-                st.info("No specific complaints detected in the titles. The threads might be general recommendations.")
-
-            # -------------------------
-            # Product Opportunity
-            # -------------------------
-            st.subheader("💡 Product Opportunity")
-            if counts["Greasy/Oily"] > 0:
-                st.success("**Opportunity:** Develop a 'Humidity-Proof Matte Gel'.")
-                st.write("Evidence: Users are frequently discussing greasiness in humid Indian conditions.")
-            elif counts["White Cast"] > 0:
-                st.success("**Opportunity:** Develop a 'Tinted Fluid' for deep skin tones.")
-                st.write("Evidence: Discussions highlight the 'ghostly' look of mineral filters.")
-            else:
-                st.success("**Opportunity:** Next-gen lightweight SPF sticks for reapplication.")
-                st.write("Evidence: Consumer sentiment shows a need for easier application methods.")
+                st.info("No specific complaints detected in the titles.")
