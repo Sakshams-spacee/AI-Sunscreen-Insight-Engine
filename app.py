@@ -80,12 +80,14 @@ div[data-baseweb="input"] input::placeholder {
 </style>
 """, unsafe_allow_html=True)
 
+
 # -------------------------
 # App Title
 # -------------------------
 
 st.title("🌻 AI Sunscreen Consumer Insight Engine")
 st.caption("Discover sunscreen product opportunities using real consumer discussions.")
+
 
 # -------------------------
 # Complaint Keywords
@@ -99,6 +101,7 @@ complaint_keywords = {
     "reapplication difficulty": ["reapply","reapplication"]
 }
 
+
 # -------------------------
 # Search Query
 # -------------------------
@@ -107,6 +110,7 @@ query = st.text_input(
     "Search query",
     placeholder="Try: sunscreen india heat sweat"
 )
+
 
 # -------------------------
 # Button Action
@@ -156,10 +160,7 @@ if st.button("Fetch, filter & generate product ideas"):
             size=25,
             color="#C27A2C"
         ).encode(
-            x=alt.X(
-                "Complaint:N",
-                axis=alt.Axis(labelAngle=0)
-            ),
+            x=alt.X("Complaint:N", axis=alt.Axis(labelAngle=0)),
             y="Frequency:Q"
         ).properties(
             width=650,
@@ -171,6 +172,7 @@ if st.button("Fetch, filter & generate product ideas"):
 
     else:
         st.write("No clear sunscreen complaints detected.")
+
 
     # -------------------------
     # Product Opportunities
@@ -208,3 +210,6 @@ if st.button("Fetch, filter & generate product ideas"):
     for i in range(len(ideas)):
         st.markdown(f"**Idea:** {ideas[i]}")
         st.caption(f"Evidence: {evidence[i]}")
+
+        if len(posts) > 0:
+            st.markdown(f"[Example discussion]({posts[0][1]})")
