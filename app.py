@@ -47,13 +47,13 @@ h1, h2, h3 { color: #7A4E2D; }
 """, unsafe_allow_html=True)
 
 st.title("🌻 AI Sunscreen Insight Engine")
-st.caption("Using Serper API for reliable, unblocked consumer data.")
+st.caption("Discover sunscreen product opportunities using real consumer discussions.")
 
 # -------------------------
 # User Input
 # -------------------------
 
-query = st.text_input("Search query", placeholder="Try: oily skin white cast")
+query = st.text_input("Search query", placeholder="Try your query")
 
 if st.button("Fetch & Analyze Insights"):
 
@@ -166,3 +166,4 @@ if st.button("Fetch & Analyze Insights"):
 
                 if posts:
                     st.markdown(f"[Example Reddit Discussion]({posts[0][1]})")
+
