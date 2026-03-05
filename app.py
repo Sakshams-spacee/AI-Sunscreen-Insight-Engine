@@ -109,7 +109,7 @@ complaint_keywords = {
 
 query = st.text_input(
     "Search query",
-    placeholder="Try: sunscreen india heat sweat"
+    placeholder="Try your query"
 )
 
 # -------------------------
@@ -212,6 +212,7 @@ if st.button("Fetch, filter & generate product ideas"):
     for i in range(len(ideas)):
         st.markdown(f"**Idea:** {ideas[i]}")
         st.caption(f"Evidence: {evidence[i]}")
+
 
 
 
