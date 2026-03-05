@@ -115,7 +115,11 @@ if st.button("Fetch & Analyze Insights"):
 
                 chart = alt.Chart(df).mark_bar(color="#C27A2C").encode(
     x=alt.X("Issue:N", sort="-y"),
-    y=alt.Y("Count:Q", scale=alt.Scale(domain=[0, df["Count"].max()+1]))
+    y=alt.Y(
+    "Count:Q",
+    title="Number of Reddit Discussions",
+    axis=alt.Axis(tickMinStep=1)
+)
 ).properties(height=300).properties(height=300)
 
                 st.altair_chart(chart, use_container_width=True)
@@ -163,6 +167,7 @@ if st.button("Fetch & Analyze Insights"):
 
                 if posts:
                     st.markdown(f"[Example Reddit Discussion]({posts[0][1]})")
+
 
 
 
