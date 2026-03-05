@@ -106,10 +106,10 @@ if st.button("Fetch & Analyze Insights"):
             })
 
             # -------------------------
-            # Sentiment Chart
+            # Top Consumer Complaints
             # -------------------------
 
-            st.subheader("Consumer Sentiment Analysis")
+            st.subheader("Top Consumer Complaints")
 
             if df["Count"].sum() > 0:
 
@@ -163,5 +163,6 @@ if st.button("Fetch & Analyze Insights"):
 
                 if posts:
                     st.markdown(f"[Example Reddit Discussion]({posts[0][1]})")
+
 
 
