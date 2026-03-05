@@ -16,7 +16,7 @@ def fetch_reddit_posts(query):
         "SkinSolutionsindia"
     ]
 
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InsightEngine/1.0"}
+    headers = {"User-Agent": "Streamlit:SunscreenInsightEngine:v1.0 (by /u/your_reddit_username)"}
     posts = []
 
     for sub in subreddits:
