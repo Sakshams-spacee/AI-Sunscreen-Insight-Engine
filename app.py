@@ -3,7 +3,12 @@ import requests
 import pandas as pd
 import altair as alt
 
-def fetch_reddit_posts():
+# -------------------------
+# Reddit Fetch Function
+# -------------------------
+
+def fetch_reddit_posts(query):
+
     subreddits = [
         "IndianSkincareAddicts",
         "skincareaddictsindia",
@@ -11,107 +16,192 @@ def fetch_reddit_posts():
         "SkinSolutionsindia"
     ]
 
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": "insight-engine"}
     posts = []
 
     for sub in subreddits:
-        url = f"https://www.reddit.com/r/{sub}/hot.json?limit=20"
+
+        url = f"https://old.reddit.com/r/{sub}/search.json?q={query}&limit=5&restrict_sr=1"
 
         try:
-            r = requests.get(url, headers=headers, timeout=10)
-            data = r.json()
+            response = requests.get(url, headers=headers)
+
+            if response.status_code != 200:
+                continue
+
+            data = response.json()
 
             for post in data["data"]["children"]:
+
                 title = post["data"]["title"].lower()
 
-                if "sunscreen" in title or "spf" in title:
-                    link = "https://reddit.com" + post["data"]["permalink"]
-                    posts.append((title, link))
+                if "sunscreen" not in title and "spf" not in title and "sun screen" not in title:
+                    continue
+
+                clean_text = title.replace("&#x200b;", "")
+                link = "https://reddit.com" + post["data"]["permalink"]
+
+                posts.append((clean_text[:120], link))
+
         except:
-            pass
+            continue
 
     return posts
 
 
+# -------------------------
+# UI Styling
+# -------------------------
+
+st.markdown("""
+<style>
+.stApp {
+    background-color: #E8B57A;
+}
+
+h1, h2, h3 {
+    color: #7A4E2D;
+}
+
+.stButton > button {
+    background-color: #D9D9D9;
+    color: black;
+    border-radius: 10px;
+}
+
+div[data-baseweb="input"] input {
+    background-color: #F0F0F0;
+    color: black;
+}
+
+div[data-baseweb="input"] input::placeholder {
+    color: #666666;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# -------------------------
+# App Title
+# -------------------------
+
 st.title("🌻 AI Sunscreen Consumer Insight Engine")
 st.caption("Discover sunscreen product opportunities using real consumer discussions.")
 
+# -------------------------
+# Complaint Keywords
+# -------------------------
+
 complaint_keywords = {
-    "white cast": ["white cast","ashy","grey"],
-    "greasy texture": ["greasy","oily","sticky"],
+    "white cast / dark skin suitability": ["white cast","dark skin","melanin","ashy","grey cast"],
+    "greasy/oily texture": ["greasy","oily","sticky"],
     "melting in heat": ["melt","melting","sweat","humidity","hot"],
-    "breakouts": ["acne","breakout","pimple"],
+    "breakouts/acne": ["acne","breakout","pimple","clog"],
     "reapplication difficulty": ["reapply","reapplication"]
 }
 
-query = st.text_input("Search query", placeholder="dark skin, oily skin, humidity")
+# -------------------------
+# Search Query
+# -------------------------
 
-if st.button("Fetch insights"):
+query = st.text_input(
+    "Search query",
+    placeholder="Try: sunscreen india heat sweat"
+)
 
-    posts = fetch_reddit_posts()
+# -------------------------
+# Button Action
+# -------------------------
+
+if st.button("Fetch, filter & generate product ideas"):
+
+    posts = fetch_reddit_posts(query)
 
     st.subheader("Reddit Discussions")
 
     if len(posts) == 0:
-        st.write("No sunscreen posts detected.")
-    else:
-        for text, link in posts[:5]:
-            st.markdown(f"- {text}  \n[View discussion]({link})")
+        st.write("No sunscreen discussions found for this query.")
 
-    counts = {k:0 for k in complaint_keywords}
+    for text, link in posts[:5]:
+        st.markdown(f"- {text}  \n[View discussion]({link})")
 
-    for p in posts:
-        text = p[0]
+    # -------------------------
+    # Complaint Detection
+    # -------------------------
 
-        for complaint,words in complaint_keywords.items():
-            for w in words:
-                if w in text:
-                    counts[complaint]+=1
+    counts = {key: 0 for key in complaint_keywords}
+
+    for post in posts:
+
+        text = post[0].lower()
+
+        for complaint, keywords in complaint_keywords.items():
+
+            for word in keywords:
+
+                if word in text:
+                    counts[complaint] += 1
 
     df = pd.DataFrame({
-        "Complaint":list(counts.keys()),
-        "Frequency":list(counts.values())
+        "Complaint": list(counts.keys()),
+        "Frequency": list(counts.values())
     })
 
-    df = df[df["Frequency"]>0]
+    df = df[df["Frequency"] > 0]
 
     st.subheader("Top Consumer Complaints")
 
-    if len(df)>0:
+    if len(df) > 0:
 
-        chart = alt.Chart(df).mark_bar(color="#C27A2C").encode(
-            x=alt.X("Complaint:N",axis=alt.Axis(labelAngle=0)),
+        chart = alt.Chart(df).mark_bar(
+            size=25,
+            color="#C27A2C"
+        ).encode(
+            x=alt.X(
+                "Complaint:N",
+                axis=alt.Axis(labelAngle=0)
+            ),
             y="Frequency:Q"
+        ).properties(
+            width=650,
+            height=350,
+            background="#F6D59C"
         )
 
-        st.altair_chart(chart,use_container_width=True)
+        st.altair_chart(chart, use_container_width=True)
 
-    ideas=[]
-    evidence=[]
+    else:
+        st.write("No clear sunscreen complaints detected.")
 
-    if counts["white cast"]>0:
-        ideas.append("Invisible sunscreen for melanin rich skin")
-        evidence.append("Users complain about white cast.")
+    # -------------------------
+    # Product Opportunities
+    # -------------------------
 
-    if counts["greasy texture"]>0:
-        ideas.append("Ultra matte sunscreen for humid climates")
-        evidence.append("Users mention greasy sunscreen.")
+    ideas = []
+    evidence = []
 
-    if counts["melting in heat"]>0:
-        ideas.append("Heat resistant outdoor sunscreen")
-        evidence.append("Posts mention sunscreen melting.")
+    if counts["white cast / dark skin suitability"] > 0:
+        ideas.append("Invisible sunscreen formulated for melanin-rich Indian skin tones")
+        evidence.append("Consumers mention white cast or ashy finish on darker skin.")
 
-    if counts["breakouts"]>0:
-        ideas.append("Acne safe sunscreen")
-        evidence.append("Users report breakouts.")
+    if counts["greasy/oily texture"] > 0:
+        ideas.append("Ultra-matte gel sunscreen designed for humid Indian climates")
+        evidence.append("Users report greasy sunscreen performance in humidity.")
 
-    if counts["reapplication difficulty"]>0:
-        ideas.append("Portable sunscreen stick")
-        evidence.append("Users struggle to reapply.")
+    if counts["melting in heat"] > 0:
+        ideas.append("Heat-resistant outdoor sunscreen for extreme Indian summers")
+        evidence.append("Posts mention sunscreen melting or sweating off.")
 
-    if len(ideas)==0:
-        ideas.append("Lightweight daily sunscreen for Indian summers")
-        evidence.append("General sunscreen dissatisfaction.")
+    if counts["breakouts/acne"] > 0:
+        ideas.append("Acne-safe sunscreen formulated for oily skin")
+        evidence.append("Users report pimples or clogged pores after sunscreen use.")
+
+    if counts["reapplication difficulty"] > 0:
+        ideas.append("Portable sunscreen mist or stick for quick reapplication")
+        evidence.append("Consumers mention difficulty reapplying sunscreen during the day.")
+
+    if len(ideas) == 0:
+        ideas.append("Lightweight sunscreen optimized for Indian summer conditions")
+        evidence.append("General sunscreen dissatisfaction appears in discussions.")
 
     st.subheader("💡 Product Opportunities")
 
