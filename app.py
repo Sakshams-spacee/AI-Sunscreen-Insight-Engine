@@ -16,7 +16,7 @@ def fetch_reddit_posts(query):
         "SkinSolutionsindia"
     ]
 
-    headers = {"User-Agent": "insight-engine"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InsightEngine/1.0"}
     posts = []
 
     for sub in subreddits:
@@ -208,7 +208,7 @@ if st.button("Fetch, filter & generate product ideas"):
     st.subheader("💡 Product Opportunities")
 
     for i in range(len(ideas)):
-        st.markdown(f"**Idea:** {ideas[i]}")
+        st.markdown(f"*Idea:* {ideas[i]}")
         st.caption(f"Evidence: {evidence[i]}")
 
         if len(posts) > 0:
