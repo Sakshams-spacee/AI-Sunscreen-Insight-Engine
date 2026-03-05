@@ -37,8 +37,8 @@ def fetch_reddit_posts(query):
                 title = post["data"]["title"].lower()
 
                 # only sunscreen related posts
-                if "sunscreen" not in title and "spf" not in title and "sun screen" not in title:
-                    continue
+                if not any(word in title for word in ["sunscreen","spf","sun screen","uv","sun protection"]):
+    continue
 
                 clean_text = title.replace("&#x200b;", "")
                 link = "https://reddit.com" + post["data"]["permalink"]
@@ -212,3 +212,4 @@ if st.button("Fetch, filter & generate product ideas"):
     for i in range(len(ideas)):
         st.markdown(f"**Idea:** {ideas[i]}")
         st.caption(f"Evidence: {evidence[i]}")
+
